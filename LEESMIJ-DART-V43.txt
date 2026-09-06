@@ -1,0 +1,29 @@
+ZamexCards Dart TCG Fotobatchbewerker V43 – achtergrond vervangen
+
+Waarom V43:
+De nieuwe bronfoto's staan niet allemaal exact op dezelfde afstand of positie.
+Een vaste crop kan daardoor een deel van de foto's te sterk inzoomen.
+
+Nieuwe methode:
+- optioneel wordt de achtergrond rondom product en houder automatisch verwijderd;
+- zonder eigen afbeelding kan PNG transparant worden opgeslagen;
+- een eigen JPG, PNG of WEBP kan beeldvullend achter het product worden geplaatst;
+- de pagina onderscheidt automatisch verticale dartkaarten en horizontale flights;
+- flights worden samen met hun houder gecentreerd met minimaal 10% buitenruimte;
+- de fysieke zwarte Dart TCG-houder is de schaal- en positie-referentie;
+- de lange doorlopende zwarte voet wordt automatisch gevonden;
+- donkere delen van het kaartontwerp worden genegeerd doordat alleen onderin wordt gezocht;
+- iedere foto wordt naar exact dezelfde houderbreedte als het perfecte voorbeeld gebracht;
+- iedere foto wordt horizontaal op hetzelfde midden gezet;
+- iedere foto wordt verticaal op dezelfde houderhoogte gezet;
+- alleen een betrouwbare scheefstand van 0,25° t/m 4° wordt rechtgezet;
+- bij twijfel wordt niet gedraaid;
+- als de houder niet betrouwbaar gevonden wordt, gebruikt de pagina een veilige Dart-crop.
+
+Exacte doelkalibratie uit 'zo moeten de afbeeldingen worden.png' op 1500x1500:
+- houderbreedte: 1121 px
+- houdermidden: 750 px
+- zwarte referentierij: y = 1414 px
+
+Geen OpenCV, geen zware AI en geen betaalde API.
+Originele kleuren blijven behouden en het eigen logo wordt als laatste layer geplaatst.
