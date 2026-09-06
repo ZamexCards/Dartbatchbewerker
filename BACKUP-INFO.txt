@@ -1,6 +1,6 @@
 ZamexCards Dart TCG Fotobatchbewerker
 
-Versie: V43 Dart TCG – achtergrond verwijderen en vervangen
+Versie: V44 Dart TCG – achtergrondteller en betrouwbare modulelader
 Basis: goed werkende ZamexCards V40
 Datum back-up: 6 september 2026
 
