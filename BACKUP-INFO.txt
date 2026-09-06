@@ -1,6 +1,6 @@
 ZamexCards Dart TCG Fotobatchbewerker
 
-Versie: V44 Dart TCG – achtergrondteller en betrouwbare modulelader
+Versie: V45 Dart TCG – aparte achtergrondknop en lokale terugvalmethode
 Basis: goed werkende ZamexCards V40
 Datum back-up: 6 september 2026
 

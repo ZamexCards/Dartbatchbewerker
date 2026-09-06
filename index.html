@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ZamexCards Dart TCG Fotobatchbewerker – V44 – achtergrondteller</title>
+<title>ZamexCards Dart TCG Fotobatchbewerker – V45 – achtergrondknop</title>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
@@ -218,6 +218,9 @@ button:disabled{opacity:.45;cursor:not-allowed!important;filter:saturate(.45)}
       <div class="help">Kies een JPG, PNG of WEBP. De afbeelding wordt beeldvullend achter het vrijstaande product geplaatst.</div>
     </div>
   </div>
+  <div class="footer-actions" style="margin-top:14px">
+    <button id="runBackground" class="primary" type="button">Achtergrond verwijderen / vervangen</button>
+  </div>
   <div class="status" id="backgroundStatus" style="margin-top:14px">Achtergrondbewerking staat uit. Kies transparant of een eigen achtergrond om deze te gebruiken.</div>
   <div id="backgroundCounter" class="status ok" style="margin-top:10px">Achtergrond bewerkt: 0 van 0 afbeeldingen</div>
   <div class="progress" aria-label="Voortgang achtergrondbewerking"><div id="backgroundBar" class="bar"></div></div>
@@ -261,7 +264,7 @@ button:disabled{opacity:.45;cursor:not-allowed!important;filter:saturate(.45)}
   <div class="ai8box">
     <div class="ai8row">
       <span id="ai8dot" class="ai8dot"></span>
-      <strong>Dart TCG Fotobatchbewerker V44 – achtergrondteller</strong>
+      <strong>Dart TCG Fotobatchbewerker V45 – achtergrondknop</strong>
       <span id="ai8status">WebGPU controleren…</span>
     </div>
     <div class="ai8small">
@@ -275,7 +278,7 @@ button:disabled{opacity:.45;cursor:not-allowed!important;filter:saturate(.45)}
     <button id="prepare" class="secondary">Foto's koppelen & verwerken</button>
     <button id="download" class="primary" disabled>Maak ZIP-bestand aan</button>
   </div>
-  <div id="status" class="status">Dart TCG Fotobatchbewerker V44 geladen – nog geen foto's geladen.</div>
+  <div id="status" class="status">Dart TCG Fotobatchbewerker V45 geladen – nog geen foto's geladen.</div>
   <div class="progress"><div id="bar" class="bar"></div></div>
 </section>
 
@@ -330,7 +333,6 @@ $('backgroundMode').addEventListener('change',()=>{
  else if(mode==='transparent')el.textContent='De achtergrond wordt verwijderd. Kies PNG als uitvoerformaat voor transparantie.';
  else el.textContent=customBackgroundImg?'Eigen achtergrond is klaar voor gebruik.':'Kies hieronder eerst een eigen achtergrondafbeelding.';
  el.className='status '+(mode==='custom'&&!customBackgroundImg?'warn':'ok');
- if(mode!=='original')window.ZamexEnsureBackgroundRemoval?.();
 });
 $('prepare').onclick=async()=>{
  recognitionBusy=false;
@@ -441,6 +443,26 @@ $('prepare').onclick=async()=>{
    $('prepare').disabled=false;
  }
 }
+$('runBackground').onclick=async()=>{
+ const button=$('runBackground');
+ if($('backgroundMode').value==='original'){
+   setStatus('Kies eerst “Achtergrond verwijderen” of “Eigen afbeelding gebruiken”.','warn');
+   return;
+ }
+ if(!$('photos').files.length){
+   setStatus("Selecteer eerst de foto's die je wilt bewerken.",'warn');
+   return;
+ }
+ button.disabled=true;
+ const oldText=button.textContent;
+ button.textContent='Achtergrondbewerking bezig…';
+ try{
+   await $('prepare').onclick();
+ }finally{
+   button.disabled=false;
+   button.textContent=oldText;
+ }
+};
 function syncInputs(){document.querySelectorAll('.card').forEach(card=>{
       const p=pairs[+card.dataset.index];
       const n=card.querySelector('.name').value.trim();
@@ -2704,7 +2726,7 @@ $('download').onclick=async()=>{
    const url=URL.createObjectURL(blob);
    const a=document.createElement('a');
    a.href=url;
-   a.download='ZamexCards-Dart-V44-achtergrond.zip';
+   a.download='ZamexCards-Dart-V45-achtergrond.zip';
    document.body.appendChild(a);
    a.click();
    a.remove();
@@ -2723,6 +2745,68 @@ $('download').onclick=async()=>{
 </script>
 
 <script>
+async function zamexLocalStudioBackgroundRemoval(source,progress){
+  const image=await new Promise((resolve,reject)=>{
+    const img=new Image(),url=URL.createObjectURL(source);
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Afbeelding kon niet worden geopend.'));};
+    img.src=url;
+  });
+  const canvas=document.createElement('canvas');
+  canvas.width=image.width;canvas.height=image.height;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(image,0,0);
+  const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const data=frame.data,w=canvas.width,h=canvas.height;
+  const rowBg=new Float32Array(h*3);
+  const edge=Math.max(8,Math.round(w*.035));
+
+  progress?.('Ingebouwde achtergrondanalyse',5,100);
+  for(let y=0;y<h;y++){
+    let r=0,g=0,b=0,n=0;
+    for(let x=0;x<edge;x++){
+      let i=(y*w+x)*4;r+=data[i];g+=data[i+1];b+=data[i+2];n++;
+      i=(y*w+w-1-x)*4;r+=data[i];g+=data[i+1];b+=data[i+2];n++;
+    }
+    rowBg[y*3]=r/n;rowBg[y*3+1]=g/n;rowBg[y*3+2]=b/n;
+  }
+
+  const mask=new Uint8Array(w*h);
+  const queue=new Int32Array(w*h);
+  let head=0,tail=0;
+  const canRemove=(x,y)=>{
+    const p=y*w+x,i=p*4,bi=y*3;
+    const r=data[i],g=data[i+1],b=data[i+2];
+    const dr=r-rowBg[bi],dg=g-rowBg[bi+1],db=b-rowBg[bi+2];
+    const distance=Math.sqrt(dr*dr+dg*dg+db*db);
+    return distance<58 && Math.max(r,g,b)>105 && Math.max(r,g,b)-Math.min(r,g,b)<78;
+  };
+  const add=(x,y)=>{
+    if(x<0||x>=w||y<0||y>=h)return;
+    const p=y*w+x;
+    if(mask[p]||!canRemove(x,y))return;
+    mask[p]=1;queue[tail++]=p;
+  };
+  for(let x=0;x<w;x++){add(x,0);add(x,h-1);}
+  for(let y=0;y<h;y++){add(0,y);add(w-1,y);}
+
+  let lastYield=0;
+  while(head<tail){
+    const p=queue[head++],x=p%w,y=(p/w)|0;
+    add(x-1,y);add(x+1,y);add(x,y-1);add(x,y+1);
+    if(head-lastYield>120000){
+      lastYield=head;
+      progress?.('Ingebouwde achtergrondanalyse',15+Math.round(65*head/Math.max(tail,1)),100);
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+  }
+
+  for(let p=0;p<mask.length;p++)if(mask[p])data[p*4+3]=0;
+  ctx.putImageData(frame,0,0);
+  progress?.('Ingebouwde achtergrondanalyse',100,100);
+  return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Transparante afbeelding kon niet worden gemaakt.')),'image/png',1));
+}
+
 let zamexBackgroundModulePromise=null;
 window.ZamexEnsureBackgroundRemoval=async function(){
   if(window.ZamexRemoveBackground)return window.ZamexRemoveBackground;
@@ -2738,7 +2822,10 @@ window.ZamexEnsureBackgroundRemoval=async function(){
     let lastError=null;
     for(const source of sources){
       try{
-        const module=await import(source);
+        const module=await Promise.race([
+          import(source),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error('Laadtijd verstreken')),8000))
+        ]);
         const remover=module.default||module.imglyRemoveBackground;
         if(typeof remover!=='function')throw new Error('Geen geldige achtergrondfunctie ontvangen.');
         window.ZamexRemoveBackground=(image,progress)=>remover(image,{
@@ -2749,9 +2836,9 @@ window.ZamexEnsureBackgroundRemoval=async function(){
         return window.ZamexRemoveBackground;
       }catch(error){lastError=error;}
     }
-    zamexBackgroundModulePromise=null;
-    if(statusEl){statusEl.textContent='Achtergrondmodule kon niet laden. Controleer de internetverbinding en vernieuw de pagina.';statusEl.className='status warn';}
-    throw lastError||new Error('Achtergrondmodule kon niet laden.');
+    window.ZamexRemoveBackground=(image,progress)=>zamexLocalStudioBackgroundRemoval(image,progress);
+    if(statusEl){statusEl.textContent='Ingebouwde achtergrondbewerking is geladen en klaar voor gebruik.';statusEl.className='status ok';}
+    return window.ZamexRemoveBackground;
   })();
   return zamexBackgroundModulePromise;
 };
