@@ -1,0 +1,11 @@
+ZamexCards Dart TCG Fotobatchbewerker
+
+Versie: V42 Dart TCG – kaarten en flights
+Basis: goed werkende ZamexCards V40
+Datum back-up: 6 september 2026
+
+BELANGRIJK:
+Deze versie is speciaal gekalibreerd voor Dart TCG-kaarten en flights op hun zwarte houders.
+De originele Pokémon V40 is niet gewijzigd.
+
+Deze ZIP bevat de zelfstandige index.html en uitleg van de Dart TCG-versie.
